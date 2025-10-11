@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Prediction Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        /* Background image + overlay */
+        body {
+            background-image: url("{{ url_for('static', filename='images/stock_bg.jpg') }}");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center;
+            color: #fff;
+            position: relative;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.35); /* overlay for readability */
+            z-index: -1;
+        }
+
+        /* Cards */
+        .card {
+            background-color: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: #fff;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
+        /* Tables */
+        .table-responsive {
+            max-height: 500px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        table th, table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        td.predicted_stock_units { 
+            background-color: rgba(210,240,210,0.85); 
+            font-weight: bold; 
+            color: #004d00;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            background: rgba(33, 37, 41, 0.9);
+            color: white;
+            z-index: 10;
+        }
+
+        /* Headings */
+        h2, h4, h5 {
+            color: #fffae6;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #004085;
+        }
+
+        footer {
+            margin-top: 40px;
+            padding: 15px;
+            text-align: center;
+            color: #ccc;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <img src="{{ url_for('static', filename='images/stock_bg.jpg') }}" alt="Test Image" style="width:300px;">
+<div class="container mt-5">
+    <h2 class="mb-4 text-center">📊 Stock Prediction Dashboard</h2>
+
+    <div class="card mb-4 p-3 shadow-sm">
+        <h4>Instructions:</h4>
+        <ol>
+            <li>Prepare a CSV; the app auto-maps columns (Date, Sales, Stock_Units, Price).</li>
+            <li>Click <strong>Choose File</strong> → select your CSV → <strong>Predict</strong></li>
+            <li>See results, metrics, future predictions, and interactive plot below.</li>
+            <li>Download the CSV with predictions using the button provided.</li>
+        </ol>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="d-flex gap-2 mb-4">
+        <input type="file" name="file" class="form-control" accept=".csv" required>
+        <button type="submit" class="btn btn-primary">🚀 Predict</button>
+    </form>
+
+    {% if error_msg %}
+        <div class="alert alert-danger mt-3">{{ error_msg }}</div>
+    {% endif %}
+
+    {% if mapped_columns %}
+        <div class="card mb-3 p-2 shadow-sm">
+            <h5>📌 Column Mapping Summary</h5>
+            <table class="table table-bordered table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Standard Name</th>
+                        <th>CSV Column Used</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for key, val in mapped_columns.items() %}
+                    <tr>
+                        <td>{{ key }}</td>
+                        <td>{{ val }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {% if table_data %}
+        <div class="d-flex justify-content-end mb-3">
+            <a href="{{ url_for('download') }}" class="btn btn-success">⬇️ Download Predictions CSV</a>
+            <a href="{{ url_for('download', file='train.csv') }}" class="btn btn-primary">⬇️ Download train.csv</a>
+            <a href="{{ url_for('download', file='test.csv') }}" class="btn btn-secondary">⬇️ Download test.csv</a>
+        </div>
+
+        <div class="table-responsive shadow-sm mb-4">
+            <table class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        {% for col in table_data[0].keys() %}
+                            <th>{{ col }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in table_data %}
+                        <tr>
+                            {% for col, value in row.items() %}
+                                {% if col == 'Predicted_Venda' %}
+                                    <td class="predicted_stock_units">{{ value | round(2) }}</td>
+                                {% else %}
+                                    <td>{{ value }}</td>
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if plot_html %}
+            <div class="card mb-4 p-3 shadow-sm">
+                <h5>📈 Actual vs Predicted Interactive Plot</h5>
+                {{ plot_html|safe }}
+            </div>
+        {% endif %}
+
+        {% if metrics %}
+            <div class="card mb-4 p-3 shadow-sm">
+                <h5>📊 Model Evaluation Metrics</h5>
+                <ul class="list-group">
+                    <li class="list-group-item">MSE: {{ metrics.MSE | round(2) }}</li>
+                    <li class="list-group-item">RMSE: {{ metrics.RMSE | round(2) }}</li>
+                    <li class="list-group-item">R² Score: {{ metrics.R2 | round(2) }}</li>
+                </ul>
+            </div>
+        {% endif %}
+
+        {% if future_predictions %}
+            <div class="card mb-4 p-3 shadow-sm">
+                <h5>📅 Future 7-Day Predictions</h5>
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Predicted Stock Units</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in future_predictions %}
+                            <tr>
+                                <td>{{ row.Date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ row.Predicted_Venda | round(2) }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+</body>
+</html>

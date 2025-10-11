@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Prediction Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        /* Background image + overlay */
+        body {
+            background-image: url("{{ url_for('static', filename='images/stock_bg.jpg') }}");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center;
+            color: #fff;
+            position: relative;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.35); /* overlay for readability */
+            z-index: -1;
+        }
+
+        /* Cards */
+        .card {
+            background-color: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: #fff;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
+        /* Tables */
+        .table-responsive {
+            max-height: 500px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        table th, table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        td.predicted_stock_units { 
+            background-color: rgba(210,240,210,0.85); 
+            font-weight: bold; 
+            color: #004d00;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            background: rgba(33, 37, 41, 0.9);
+            color: white;
+            z-index: 10;
+        }
+
+        /* Headings */
+        h2, h4, h5 {
+            color: #fffae6;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #004085;
+        }
+
+        footer {
+            margin-top: 40px;
+            padding: 15px;
+            text-align: center;
+            color: #ccc;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+    <h1 class="mb-4">Predicted Stock Units</h1>
+
+    {% if error_msg %}
+        <div class="alert alert-danger">{{ error_msg }}</div>
+    {% endif %}
+
+    {% if metrics %}
+        <div class="mb-4">
+            <h5>Model Evaluation Metrics:</h5>
+            <ul>
+                <li>MSE: {{ metrics.MSE }}</li>
+                <li>RMSE: {{ metrics.RMSE }}</li>
+                <li>R² Score: {{ metrics.R2 }}</li>
+            </ul>
+        </div>
+    {% endif %}
+
+    {% if plot_html %}
+        <div class="mb-4">
+            <h5>Actual vs Predicted Stock Units:</h5>
+            {{ plot_html | safe }}
+        </div>
+    {% endif %}
+
+    {% if table_data %}
+        <table class="table table-bordered table-striped">
+            <thead class="table-dark">
+                <tr>
+                    {% for key in table_data[0].keys() %}
+                        <th>{{ key }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in table_data %}
+                    <tr>
+                        {% for value in row.values() %}
+                            <td>{{ value }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <a href="/download" class="btn btn-success mt-3">Download Predictions CSV</a>
+    {% endif %}
+
+    <a href="/" class="btn btn-primary mt-3">Upload Another CSV</a>
+</div>
+</body>
+</html>
